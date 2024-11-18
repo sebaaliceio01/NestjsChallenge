@@ -1,5 +1,5 @@
 
-# AI Product Recommendation Service
+# Product Recommendation Service
 
 This project implements a scalable API for product recommendations using **NestJS**, **TypeScript**, and vector-based search technology. The API is designed to serve as a foundation for a SaaS product recommendation service.
 
