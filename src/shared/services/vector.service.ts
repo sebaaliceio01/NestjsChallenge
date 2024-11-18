@@ -1,14 +1,14 @@
-import { Injectable } from "@nestjs/common";
-import { EmbeddingService } from "../../providers/openai/openai-interface";
-import { Product } from "../../modules/product/domain/entity/product-entity";
-import { RetryService } from "./retry.service";
+import { Injectable } from '@nestjs/common';
+import { EmbeddingService } from '../../providers/openai/openai-interface';
+import { Product } from '../../modules/product/domain/entity/product-entity';
+import { RetryService } from './retry.service';
 
 @Injectable()
 export class VectorService {
     constructor(
         private readonly embeddingService: EmbeddingService,
         private readonly retryService: RetryService,
-    ) { }
+    ) {}
 
     async generateVectors(products: Product[]): Promise<any[]> {
         const pLimit = (await import('p-limit')).default;
@@ -31,7 +31,11 @@ export class VectorService {
     async generateVector(product: Product): Promise<any> {
         const tagsText = product.tags.join(' ');
 
-        const embedding = await this.retryService.retryWithTimeout(() => this.embeddingService.generateEmbedding(tagsText), 3000, 3);
+        const embedding = await this.retryService.retryWithTimeout(
+            () => this.embeddingService.generateEmbedding(tagsText),
+            3000,
+            3,
+        );
 
         return {
             id: product.id,

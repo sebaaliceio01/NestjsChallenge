@@ -1,2 +1,2 @@
 export * from './pinecone';
-export * from "./repository-interface"
+export * from './repository-interface';

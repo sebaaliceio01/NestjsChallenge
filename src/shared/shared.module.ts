@@ -18,4 +18,4 @@ import { OpenaiConfigModule } from '../configuration/provider/openai/openai-conf
     ],
     exports: [RetryService, VectorService, EmbeddingService],
 })
-export class SharedModule { }
+export class SharedModule {}

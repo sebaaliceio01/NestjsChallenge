@@ -13,17 +13,16 @@ export class ProductUseCase implements ProductInputUseCase {
     constructor(
         private readonly productOutput: ProductOutputRepository,
         private readonly vectorService: VectorService,
-
-    ) { }
+    ) {}
 
     async saveProducts(dto: SaveProductDto): Promise<void> {
-        const products = dto.products
+        const products = dto.products;
 
         if (!products || products.length === 0) {
             throw new Error('No products provided');
         }
 
-        let generatedProducts = []
+        const generatedProducts = [];
 
         this.logger.log(`Generated vectors for ${products.length} products`);
 

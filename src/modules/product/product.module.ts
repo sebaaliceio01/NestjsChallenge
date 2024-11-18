@@ -12,7 +12,14 @@ import { PineconeDatabaseProviderModule } from 'src/providers';
 import { SharedModule } from '../../shared/shared.module';
 
 @Module({
-    imports: [PineconeDatabaseProviderModule, SharedModule, OpenaiConfigModule, PineconeConfigModule, PineconeRepositoryModule, OpenaiModule],
+    imports: [
+        PineconeDatabaseProviderModule,
+        SharedModule,
+        OpenaiConfigModule,
+        PineconeConfigModule,
+        PineconeRepositoryModule,
+        OpenaiModule,
+    ],
     controllers: [ProductController],
     providers: [
         ProductUseCase,
@@ -23,4 +30,4 @@ import { SharedModule } from '../../shared/shared.module';
         },
     ],
 })
-export class ProductModule { }
+export class ProductModule {}

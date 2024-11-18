@@ -101,9 +101,7 @@ describe('ProductUseCase', () => {
 
             productOutputMock.getProductMatchesById.mockRejectedValueOnce(new Error('Database error'));
 
-            await expect(useCase.getProductsMatchesById(dto)).rejects.toThrowError(
-                new ApiError(500, 'Database error'),
-            );
+            await expect(useCase.getProductsMatchesById(dto)).rejects.toThrowError(new ApiError(500, 'Database error'));
             expect(productOutputMock.getProductMatchesById).toHaveBeenCalledTimes(1);
         });
     });

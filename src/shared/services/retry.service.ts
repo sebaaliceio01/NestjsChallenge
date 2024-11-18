@@ -5,12 +5,12 @@ export class RetryService {
     readonly logger = new Logger(RetryService.name);
 
     /**
-    * Executes an asynchronous task with a timeout and automatic retries.
-    * @param task The asynchronous task to be executed.
-    * @param timeout Maximum time in milliseconds to complete the task.
-    * @param retries Maximum number of retry attempts.
-    * @returns The result of the task.
-    */
+     * Executes an asynchronous task with a timeout and automatic retries.
+     * @param task The asynchronous task to be executed.
+     * @param timeout Maximum time in milliseconds to complete the task.
+     * @param retries Maximum number of retry attempts.
+     * @returns The result of the task.
+     */
     async retryWithTimeout<T>(task: () => Promise<T>, timeout: number, retries: number): Promise<T> {
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
@@ -33,7 +33,7 @@ export class RetryService {
      * @param task The asynchronous task to be executed.
      * @param timeout Maximum time in milliseconds to complete the task.
      * @returns The result of the task if it completes within the timeout.
-    */
+     */
     withTimeout<T>(task: () => Promise<T>, timeout: number): Promise<T> {
         return new Promise<T>((resolve, reject) => {
             const timer = setTimeout(() => {

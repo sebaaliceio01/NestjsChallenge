@@ -34,4 +34,4 @@ const CORRELATION_ID_HEADER = 'x-correlation-id';
     controllers: [AppController],
     providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

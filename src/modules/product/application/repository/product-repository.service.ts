@@ -3,14 +3,11 @@ import { PineconeRecord, RecordMetadata, QueryResponse } from '@pinecone-databas
 import { ProductRepository } from '../../domain/ports/product.output.usecase';
 import { VectorDatabase } from '../../../../providers/database/pinecone/pinecone-interface';
 
-
 @Injectable()
 export class ProductOutputRepository implements ProductRepository {
     readonly logger = new Logger(ProductOutputRepository.name);
 
-    constructor(
-        private readonly vectorDb: VectorDatabase,
-    ) { }
+    constructor(private readonly vectorDb: VectorDatabase) {}
 
     async createMany(vectors: PineconeRecord<RecordMetadata>[] | any): Promise<void> {
         this.logger.log(`Saving ${vectors.length} vectors as products`);
