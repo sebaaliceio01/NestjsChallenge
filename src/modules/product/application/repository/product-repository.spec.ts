@@ -1,130 +1,89 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PineconeRepository } from '../../../../repositories/pinecone/pinecone-repository.service';
-import { OpenaiService } from '../../../../providers/openai/openai.service';
-import { Product } from '../../domain/entity/product-entity';
-import { ProductRepository } from './product-repository.service';
+import { Logger } from '@nestjs/common';
+import { VectorDatabase } from '../../../../providers/database/pinecone/pinecone-interface';
+import { PineconeRecord, RecordMetadata, QueryResponse } from '@pinecone-database/pinecone';
+import { ProductOutputRepository } from './product-repository.service';
 
-describe('ProductRepository', () => {
-    let productRepository: ProductRepository;
-    let pineconeRepository: PineconeRepository;
-    let openaiService: OpenaiService;
+describe('ProductOutputRepository', () => {
+    let repository: ProductOutputRepository;
+    let vectorDbMock: jest.Mocked<VectorDatabase>;
+    const loggerMock = new Logger(ProductOutputRepository.name);
 
     beforeEach(async () => {
+        vectorDbMock = {
+            createMany: jest.fn(),
+            query: jest.fn(),
+        } as unknown as jest.Mocked<VectorDatabase>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
-                ProductRepository,
-                {
-                    provide: PineconeRepository,
-                    useValue: {
-                        create: jest.fn(),
-                        query: jest.fn(),
-                    },
-                },
-                {
-                    provide: OpenaiService,
-                    useValue: {
-                        generateEmbedding: jest.fn(),
-                    },
-                },
+                ProductOutputRepository,
+                { provide: VectorDatabase, useValue: vectorDbMock },
+                { provide: Logger, useValue: loggerMock },
             ],
         }).compile();
 
-        productRepository = module.get<ProductRepository>(ProductRepository);
-        pineconeRepository = module.get<PineconeRepository>(PineconeRepository);
-        openaiService = module.get<OpenaiService>(OpenaiService);
+        repository = module.get<ProductOutputRepository>(ProductOutputRepository);
+    });
+
+    describe('createMany', () => {
+        it('should save vectors using VectorDatabase', async () => {
+            const vectors: PineconeRecord<RecordMetadata>[] = [
+                { id: '1', values: [0.1, 0.2], metadata: { key: 'value' } },
+                { id: '2', values: [0.3, 0.4], metadata: { key: 'value2' } },
+            ];
+
+            vectorDbMock.createMany.mockResolvedValue(undefined);
+
+            await repository.createMany(vectors);
+
+            expect(vectorDbMock.createMany).toHaveBeenCalledTimes(1);
+            expect(vectorDbMock.createMany).toHaveBeenCalledWith(vectors);
+        });
+
+        it('should log an error and rethrow if createMany fails', async () => {
+            const vectors: PineconeRecord<RecordMetadata>[] = [
+                { id: '1', values: [0.1, 0.2], metadata: { key: 'value' } },
+            ];
+
+            const error = new Error('Vector database error');
+            vectorDbMock.createMany.mockRejectedValueOnce(error);
+
+            await expect(repository.createMany(vectors)).rejects.toThrowError('Vector database error');
+            expect(vectorDbMock.createMany).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('getProductMatchesById', () => {
-        it('should query Pinecone for product matches', async () => {
-            const mockResponse = {
+        it('should query product matches from VectorDatabase', async () => {
+            const id = '123';
+            const topK = 5;
+            process.env.PINECONE_TOP_K = `${topK}`;
+
+            const queryResponse: QueryResponse = {
                 matches: [
                     { id: '1', score: 0.9 },
                     { id: '2', score: 0.8 },
                 ],
-            };
-
-            jest.spyOn(pineconeRepository, 'query').mockResolvedValue(mockResponse as any);
-
-            const result = await productRepository.getProductMatchesById('1');
-            expect(pineconeRepository.query).toHaveBeenCalledWith({ id: '1', topK: 5 });
-            expect(result).toEqual(mockResponse);
-        });
-
-        it('should log an error if Pinecone query fails', async () => {
-            jest.spyOn(pineconeRepository, 'query').mockRejectedValue(new Error('Query failed'));
-
-            await expect(productRepository.getProductMatchesById('1')).rejects.toThrow('Query failed');
-        });
-    });
-
-    describe('generateVector', () => {
-        it('should generate a vector for a product', async () => {
-            const mockProduct: Product = {
-                id: '1',
-                name: 'Product1',
-                description: 'Description1',
-                tags: ['tag1'],
             } as any;
 
-            const mockEmbedding = [0.1, 0.2, 0.3];
+            vectorDbMock.query.mockResolvedValue(queryResponse);
 
-            jest.spyOn(openaiService, 'generateEmbedding').mockResolvedValue(mockEmbedding);
+            const result = await repository.getProductMatchesById(id);
 
-            const result = await productRepository.generateVector(mockProduct);
-
-            expect(openaiService.generateEmbedding).toHaveBeenCalledWith('tag1');
-            expect(result).toEqual({
-                id: '1',
-                values: mockEmbedding,
-                metadata: {
-                    id: '1',
-                    name: 'Product1',
-                    tags: ['tag1'],
-                    description: 'Description1',
-                },
-            });
+            expect(vectorDbMock.query).toHaveBeenCalledTimes(1);
+            expect(vectorDbMock.query).toHaveBeenCalledWith({ id, topK });
+            expect(result).toEqual(queryResponse);
         });
 
-        it('should retry if embedding generation fails', async () => {
-            const mockProduct: Product = {
-                id: '1',
-                name: 'Product1',
-                description: 'Description1',
-                tags: ['tag1'],
-            } as any;
+        it('should log an error and rethrow if query fails', async () => {
+            const id = '123';
+            const error = new Error('Query error');
 
-            const mockEmbedding = [0.1, 0.2, 0.3];
+            vectorDbMock.query.mockRejectedValueOnce(error);
 
-            jest.spyOn(openaiService, 'generateEmbedding')
-                .mockRejectedValueOnce(new Error('Temporary error'))
-                .mockResolvedValueOnce(mockEmbedding);
-
-            const result = await productRepository.generateVector(mockProduct);
-
-            expect(openaiService.generateEmbedding).toHaveBeenCalledTimes(2);
-            expect(result).toEqual({
-                id: '1',
-                values: mockEmbedding,
-                metadata: {
-                    id: '1',
-                    name: 'Product1',
-                    tags: ['tag1'],
-                    description: 'Description1',
-                },
-            });
-        });
-
-        it('should throw an error if all retries fail', async () => {
-            const mockProduct: Product = {
-                id: '1',
-                name: 'Product1',
-                description: 'Description1',
-                tags: ['tag1'],
-            } as any;
-
-            jest.spyOn(openaiService, 'generateEmbedding').mockRejectedValue(new Error('Permanent failure'));
-
-            await expect(productRepository.generateVector(mockProduct)).rejects.toThrow('Permanent failure');
+            await expect(repository.getProductMatchesById(id)).rejects.toThrowError('Query error');
+            expect(vectorDbMock.query).toHaveBeenCalledTimes(1);
         });
     });
 });
